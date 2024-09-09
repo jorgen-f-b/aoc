@@ -58,6 +58,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer file.Close()
 
 	var scanner = bufio.NewScanner(file)
 	var number = 0
