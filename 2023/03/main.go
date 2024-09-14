@@ -25,6 +25,20 @@ type Coordinate struct {
 	row int
 }
 
+type Symbol struct {
+	val     rune
+	numbers []int
+}
+
+func addToGear(symbol *Symbol, symbols map[Coordinate]Symbol, coordinates *Coordinate, val int) {
+	if symbol.val != '*' {
+		return
+	}
+
+	symbol.numbers = append(symbol.numbers, val)
+	symbols[*coordinates] = *symbol
+}
+
 func main() {
 	file, err := os.Open("input.txt")
 	if err != nil {
@@ -32,11 +46,12 @@ func main() {
 	}
 
 	numbers := []Number{}
-	symbols := make(map[Coordinate]string)
+	symbols := make(map[Coordinate]Symbol)
 	number := ""
 	col := 0
 	length := -1
 	sum := 0
+	gearSum := 0
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -62,7 +77,7 @@ func main() {
 					start = row
 				}
 			case isSymbol(char):
-				symbols[Coordinate{col, row}] = string(char)
+				symbols[Coordinate{col, row}] = Symbol{char, []int{}}
 				if number != "" {
 					num, _ := strconv.Atoi(number)
 					numbers = append(numbers, Number{num, start, row - 1, col})
@@ -96,35 +111,52 @@ func main() {
 			end = num.end + 1
 		}
 
-		_, leftOk := symbols[Coordinate{num.col, start}]
+		leftCoordinate := Coordinate{num.col, start}
+		leftSymbol, leftOk := symbols[leftCoordinate]
 		if leftOk {
 			sum += num.val
+			addToGear(&leftSymbol, symbols, &leftCoordinate, num.val)
 			continue
 		}
 
-		_, rightOk := symbols[Coordinate{num.col, end}]
+		rightCoordinate := Coordinate{num.col, end}
+		rightSymbol, rightOk := symbols[rightCoordinate]
 		if rightOk {
 			sum += num.val
+			addToGear(&rightSymbol, symbols, &rightCoordinate, num.val)
 			continue
 		}
 
 		for i := start; i <= end; i++ {
 			if num.col != 0 {
-				_, ok := symbols[Coordinate{num.col - 1, i}]
+				coordinate := Coordinate{num.col - 1, i}
+				symbol, ok := symbols[coordinate]
 				if ok {
 					sum += num.val
+					addToGear(&symbol, symbols, &coordinate, num.val)
 					break
 				}
 			}
 			if num.col != length {
-				_, ok := symbols[Coordinate{num.col + 1, i}]
+				coordinate := Coordinate{num.col + 1, i}
+				symbol, ok := symbols[coordinate]
 				if ok {
 					sum += num.val
+					addToGear(&symbol, symbols, &coordinate, num.val)
 					break
 				}
 			}
 		}
 	}
 
+	for _, symbol := range symbols {
+		if len(symbol.numbers) != 2 {
+			continue
+		}
+
+		gearSum += symbol.numbers[0] * symbol.numbers[1]
+	}
+
 	fmt.Println(sum)
+	fmt.Println(gearSum)
 }
