@@ -63,6 +63,7 @@ func main() {
 	mapList := make([][]Map, 0)
 	isSeed := true
 	location := -1
+	location2 := -1
 
 	for scanner.Scan() {
 		text := scanner.Text()
@@ -99,5 +100,25 @@ func main() {
 		}
 	}
 
+	for i := 0; i < len(seeds); i++ {
+		start := i
+		i++
+		end := seeds[i]
+
+		for j := 0; j < end; j++ {
+			seed := seeds[start] + j
+			for _, mArr := range mapList {
+				newSeed, ok := destination(&mArr, seed)
+				if ok {
+					seed = newSeed
+				}
+			}
+			if location2 == -1 || location2 > seed {
+				location2 = seed
+			}
+		}
+	}
+
 	fmt.Println(location)
+	fmt.Println(location2)
 }
