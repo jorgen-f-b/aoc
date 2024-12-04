@@ -32,6 +32,23 @@ func sumDiff(slice1 []int, slice2 []int) int {
 	return sum
 }
 
+type Map map[int]int
+
+func freaquencyMap(arr []int) Map {
+	freaquency := make(Map)
+
+	for _, tall := range arr {
+		antall, ok := freaquency[tall]
+		if ok {
+			freaquency[tall] = antall + 1
+			continue
+		}
+		freaquency[tall] = 1
+	}
+
+	return freaquency
+}
+
 func main() {
 	file, err := os.Open("input.txt")
 	handleErr(err)
@@ -56,5 +73,15 @@ func main() {
 	slices.Sort(slice1)
 	slices.Sort(slice2)
 
-	fmt.Println(sumDiff(slice1, slice2))
+	freaquency := freaquencyMap(slice2)
+	sum := 0
+	for _, tall := range slice1 {
+		antall, ok := freaquency[tall]
+		if ok {
+			sum += antall * tall
+		}
+	}
+
+	fmt.Println("forskjell", sumDiff(slice1, slice2))
+	fmt.Println("freaquency", sum)
 }
