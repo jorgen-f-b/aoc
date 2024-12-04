@@ -28,12 +28,17 @@ func stringToIntSlice(arr []string) []int {
 	return intArr
 }
 
-func checkLevel(arr []int) bool {
+func removeFromArr(arr []int, i int) []int {
+	return append(arr[:i], arr[i+1:]...)
+}
+
+func checkLevel(arr []int, remove bool) bool {
 	prevLevel := -1
 	rising := 0
+	faultIndex := -1
 	safe := true
 
-	for _, level := range arr {
+	for i, level := range arr {
 		if prevLevel == -1 {
 			prevLevel = level
 			continue
@@ -42,15 +47,18 @@ func checkLevel(arr []int) bool {
 		diff := prevLevel - level
 
 		if diff > 3 || diff < -3 {
+			faultIndex = i
 			safe = false
 			break
 		}
 
 		if diff == 0 {
+			faultIndex = i
 			safe = false
 			break
 		} else if diff < 0 {
 			if rising == 1 {
+				faultIndex = i
 				safe = false
 				break
 			}
@@ -59,6 +67,7 @@ func checkLevel(arr []int) bool {
 			}
 		} else if diff > 0 {
 			if rising == -1 {
+				faultIndex = i
 				safe = false
 				break
 			}
@@ -70,11 +79,22 @@ func checkLevel(arr []int) bool {
 		prevLevel = level
 	}
 
+	if !safe && remove {
+		for i := faultIndex - 2; i <= faultIndex+2 && i < len(arr)-2; i++ {
+			newArr := removeFromArr(arr, i)
+			safe = checkLevel(newArr, false)
+			fmt.Println(i, newArr)
+			if safe {
+				break
+			}
+		}
+	}
+
 	return safe
 }
 
 func main() {
-	file, err := os.Open("input.txt")
+	file, err := os.Open("example.txt")
 	handleError(err)
 
 	sum := 0
@@ -85,7 +105,7 @@ func main() {
 		text := scanner.Text()
 		list := stringToIntSlice(strings.Split(text, " "))
 
-		safe := checkLevel(list)
+		safe := checkLevel(list, true)
 		if safe {
 			sum++
 		}
