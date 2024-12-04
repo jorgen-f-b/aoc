@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 func handleError(err error) {
@@ -16,73 +16,60 @@ func handleError(err error) {
 	}
 }
 
-var mul = "mul("
-var do = "do()"
-var dont = "don't()"
+func sumMul(reg *regexp.Regexp, text string, en bool) (int, bool) {
+	sum := 0
+	enabled := en
 
-func partOfValidInst(inst string, r rune) bool {
-	return (strings.Contains(mul, inst) && len(inst) != len(mul) && r == rune(mul[len(inst)])) ||
-		(strings.Contains(do, inst) && len(inst) != len(do) && r == rune(do[len(inst)])) ||
-		(strings.Contains(dont, inst) && len(inst) != len(dont) && r == rune(dont[len(inst)]))
+	matches := reg.FindAllString(text, -1)
+	for _, match := range matches {
+		if match == "do()" {
+			enabled = true
+		} else if match == "don't()" {
+			enabled = false
+		} else {
+			if !enabled {
+				continue
+			}
+			tall := strings.Split(match[4:len(match)-1], ",")
+			tall1, err := strconv.Atoi(tall[0])
+			handleError(err)
+			tall2, err := strconv.Atoi(tall[1])
+			handleError(err)
+			sum += tall1 * tall2
+		}
+	}
+
+	return sum, enabled
 }
 
 func main() {
 	file, err := os.Open("input.txt")
 	handleError(err)
 
-	sum := 0
-	enabled := true
-	inst := ""
-	sTall1 := ""
-	sTall2 := ""
-	isSecondNumber := false
+	reg1, err := regexp.Compile(`mul\(\d+,\d+\)`)
+	handleError(err)
+	enabled1 := true
+	sum1 := 0
+
+	reg2, err := regexp.Compile(`mul\(\d+,\d+\)|do\(\)|don't\(\)`)
+	handleError(err)
+	enabled2 := true
+	sum2 := 0
 
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
 		text := scanner.Text()
 
-		for _, r := range text {
-			if partOfValidInst(inst, r) {
-				inst += string(r)
-				continue
-			}
+		res, en := sumMul(reg1, text, enabled1)
+		sum1 += res
+		enabled1 = en
 
-			if inst == do {
-				enabled = true
-			} else if inst == dont {
-				enabled = false
-			} else if enabled && inst == mul {
-				if unicode.IsDigit(r) {
-					if isSecondNumber {
-						sTall2 += string(r)
-					} else {
-						sTall1 += string(r)
-					}
-					continue
-				}
-
-				if r == ',' {
-					isSecondNumber = true
-					continue
-				}
-
-				if r == ')' && sTall1 != "" && sTall2 != "" {
-					tall1, err := strconv.Atoi(sTall1)
-					handleError(err)
-					tall2, err := strconv.Atoi(sTall2)
-					handleError(err)
-
-					sum += tall1 * tall2
-				}
-			}
-
-			inst = ""
-			sTall1 = ""
-			sTall2 = ""
-			isSecondNumber = false
-		}
+		res, en = sumMul(reg2, text, enabled2)
+		sum2 += res
+		enabled2 = en
 	}
 
-	fmt.Println("Sum", sum)
+	fmt.Println("Sum1", sum1)
+	fmt.Println("Sum2", sum2)
 }
