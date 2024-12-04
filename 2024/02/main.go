@@ -29,22 +29,29 @@ func stringToIntSlice(arr []string) []int {
 }
 
 func removeFromArr(arr []int, i int) []int {
-	return append(arr[:i], arr[i+1:]...)
+	newArr := make([]int, 0, len(arr)-1)
+	if i == 0 {
+		newArr = append(newArr, arr[i+1:]...)
+	} else if i == len(arr)-1 {
+		newArr = append(newArr, arr[:i]...)
+	} else {
+		newArr = append(newArr, arr[:i]...)
+		newArr = append(newArr, arr[i+1:]...)
+	}
+	return newArr
 }
 
 func checkLevel(arr []int, remove bool) bool {
-	prevLevel := -1
 	rising := 0
 	faultIndex := -1
 	safe := true
 
 	for i, level := range arr {
-		if prevLevel == -1 {
-			prevLevel = level
-			continue
+		if i == len(arr)-1 {
+			break
 		}
 
-		diff := prevLevel - level
+		diff := level - arr[i+1]
 
 		if diff > 3 || diff < -3 {
 			faultIndex = i
@@ -75,15 +82,15 @@ func checkLevel(arr []int, remove bool) bool {
 				rising = 1
 			}
 		}
-
-		prevLevel = level
 	}
 
 	if !safe && remove {
-		for i := faultIndex - 2; i <= faultIndex+2 && i < len(arr)-2; i++ {
+		for i := faultIndex - 1; i <= faultIndex+1 && i < len(arr); i++ {
+			if i < 0 {
+				i = 0
+			}
 			newArr := removeFromArr(arr, i)
 			safe = checkLevel(newArr, false)
-			fmt.Println(i, newArr)
 			if safe {
 				break
 			}
@@ -94,10 +101,11 @@ func checkLevel(arr []int, remove bool) bool {
 }
 
 func main() {
-	file, err := os.Open("example.txt")
+	file, err := os.Open("input.txt")
 	handleError(err)
 
-	sum := 0
+	sum1 := 0
+	sum2 := 0
 
 	scanner := bufio.NewScanner(file)
 
@@ -105,11 +113,17 @@ func main() {
 		text := scanner.Text()
 		list := stringToIntSlice(strings.Split(text, " "))
 
-		safe := checkLevel(list, true)
-		if safe {
-			sum++
+		safe1 := checkLevel(list, false)
+		if safe1 {
+			sum1++
+		}
+
+		safe2 := checkLevel(list, true)
+		if safe2 {
+			sum2++
 		}
 	}
 
-	fmt.Println("SafeAmount", sum)
+	fmt.Println("SafeAmount1", sum1)
+	fmt.Println("SafeAmount2", sum2)
 }
