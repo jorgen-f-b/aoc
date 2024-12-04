@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"unicode"
 )
 
@@ -16,28 +17,42 @@ func handleError(err error) {
 }
 
 var mul = "mul("
+var do = "do()"
+var dont = "don't()"
+
+func partOfValidInst(inst string, r rune) bool {
+	return (strings.Contains(mul, inst) && len(inst) != len(mul) && r == rune(mul[len(inst)])) ||
+		(strings.Contains(do, inst) && len(inst) != len(do) && r == rune(do[len(inst)])) ||
+		(strings.Contains(dont, inst) && len(inst) != len(dont) && r == rune(dont[len(inst)]))
+}
 
 func main() {
 	file, err := os.Open("input.txt")
 	handleError(err)
 
 	sum := 0
+	enabled := true
+	inst := ""
+	sTall1 := ""
+	sTall2 := ""
+	isSecondNumber := false
 
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
 		text := scanner.Text()
-		inst := ""
-		sTall1 := ""
-		sTall2 := ""
-		isSecondNumber := false
 
 		for _, r := range text {
-			if len(inst) != len(mul) && r == rune(mul[len(inst)]) {
+			if partOfValidInst(inst, r) {
 				inst += string(r)
 				continue
 			}
-			if inst == mul {
+
+			if inst == do {
+				enabled = true
+			} else if inst == dont {
+				enabled = false
+			} else if enabled && inst == mul {
 				if unicode.IsDigit(r) {
 					if isSecondNumber {
 						sTall2 += string(r)
