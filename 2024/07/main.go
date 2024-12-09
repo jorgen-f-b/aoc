@@ -63,13 +63,22 @@ func multiply(a, b int) int {
 	return a * b
 }
 
+func concatenation(a, b int) int {
+	sa := strconv.Itoa(a)
+	sb := strconv.Itoa(b)
+	res, err := strconv.Atoi(sa + sb)
+	handleError(err)
+	return res
+}
+
 func main() {
 	file, err := os.Open("input.txt")
 	handleError(err)
 	defer file.Close()
 
 	ceArr := []CallibrationEquations{}
-	sum := 0
+	sum1 := 0
+	sum2 := 0
 
 	scanner := bufio.NewScanner(file)
 
@@ -88,9 +97,13 @@ func main() {
 
 	for _, ce := range ceArr {
 		if ce.SumPossible([]MathOperator{add, multiply}) {
-			sum += ce.sum
+			sum1 += ce.sum
+		}
+		if ce.SumPossible([]MathOperator{add, multiply, concatenation}) {
+			sum2 += ce.sum
 		}
 	}
 
-	fmt.Println("Sum", sum)
+	fmt.Println("Sum1", sum1)
+	fmt.Println("Sum2", sum2)
 }
