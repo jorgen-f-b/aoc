@@ -57,19 +57,24 @@ func copyArray(arr []string) []string {
 	return nArr
 }
 
-func (g *Guard) rotate(m []string) {
+func (g *Guard) rotate(m []string) bool {
 	if g.direction == '^' && (m[g.pos.y-1][g.pos.x] == '#' || m[g.pos.y-1][g.pos.x] == 'O') {
 		g.direction = '>'
+		return true
 	}
 	if g.direction == 'v' && (m[g.pos.y+1][g.pos.x] == '#' || m[g.pos.y+1][g.pos.x] == 'O') {
 		g.direction = '<'
+		return true
 	}
 	if g.direction == '>' && (m[g.pos.y][g.pos.x+1] == '#' || m[g.pos.y][g.pos.x+1] == 'O') {
 		g.direction = 'v'
+		return true
 	}
 	if g.direction == '<' && (m[g.pos.y][g.pos.x-1] == '#' || m[g.pos.y][g.pos.x-1] == 'O') {
 		g.direction = '^'
+		return true
 	}
+	return false
 }
 
 func (g *Guard) markPosition() bool {
@@ -91,6 +96,10 @@ func (g *Guard) markPosition() bool {
 }
 
 func (g *Guard) walk(m []string) bool {
+	if g.rotate(m) {
+		return false
+	}
+
 	switch g.direction {
 	case '^':
 		g.pos.y--
@@ -109,8 +118,6 @@ func (g *Guard) walk(m []string) bool {
 	if g.pos.x == 0 || g.pos.x == len(m[0])-1 || g.pos.y == 0 || g.pos.y == len(m)-1 {
 		return true
 	}
-
-	g.rotate(m)
 
 	return false
 }
@@ -190,6 +197,6 @@ func main() {
 		}
 	}
 
-	fmt.Println("Distint positions", len(dp))
+	fmt.Println("Distint positions", len(dp)+1)
 	fmt.Println("Creates loop", cl)
 }
