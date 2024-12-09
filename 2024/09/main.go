@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 )
 
@@ -13,12 +14,53 @@ func handleError(err error) {
 	}
 }
 
+type Data struct {
+	id, size int
+}
+
+func compact(disc []Data) []Data {
+	res := make([]Data, len(disc))
+	copy(res, disc)
+
+	i, j := 0, len(res)-1
+	for {
+		for res[i].id != -1 {
+			i++
+		}
+		for res[j].id == -1 {
+			j--
+		}
+
+		if i > j {
+			break
+		}
+
+		free := res[i]
+		data := res[j]
+
+		if free.size == data.size {
+			res[i] = data
+			res[j] = free
+		} else if free.size > data.size {
+			res[i].size -= data.size
+			res[j].id = -1
+			res = slices.Insert(res, i, data)
+		} else {
+			res[i].id = res[j].id
+			res[j].size = res[j].size - res[i].size
+		}
+	}
+
+	return res
+}
+
 func main() {
-	file, err := os.Open("example.txt")
+	file, err := os.Open("input.txt")
 	handleError(err)
 	defer file.Close()
 
-	disc := ""
+	disc := []Data{}
+	sum := 0
 
 	scanner := bufio.NewScanner(file)
 
@@ -31,17 +73,27 @@ func main() {
 			handleError(err)
 
 			if i%2 == 0 {
-				for i := 0; i < size; i++ {
-					disc += strconv.Itoa(id)
+				if size > 0 {
+					disc = append(disc, Data{id, size})
 				}
 				id++
 			} else {
-				for i := 0; i < size; i++ {
-					disc += "."
+				if size > 0 {
+					disc = append(disc, Data{-1, size})
 				}
 			}
 		}
 	}
 
-	fmt.Println(disc)
+	index := 0
+	for _, data := range compact(disc) {
+		for i := 0; i < data.size; i++ {
+			if data.id != -1 {
+				sum += index * data.id
+			}
+			index++
+		}
+	}
+
+	fmt.Println("Sum", sum)
 }
