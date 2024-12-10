@@ -54,6 +54,63 @@ func compact(disc []Data) []Data {
 	return res
 }
 
+func swapBlocks(arr []int, from, to, size int) {
+	for i := 0; i < size; i++ {
+		tmp := arr[from+i]
+		arr[from+i] = arr[to+i]
+		arr[to+i] = tmp
+	}
+}
+
+func compatctIntArr(arr []int) []int {
+	res := make([]int, len(arr))
+	copy(res, arr)
+
+	id := -1
+	size := 0
+	freeSize := 0
+
+	for j := len(res) - 1; j > 0; j-- {
+		if res[j] == -1 && id == -1 {
+			continue
+		}
+
+		if id == -1 {
+			id = res[j]
+		}
+		size++
+
+		if res[j-1] != id {
+			for i := 0; i < j; i++ {
+				if res[i] == -1 {
+					freeSize++
+					if freeSize == size {
+						swapBlocks(res, i-freeSize+1, j, size)
+						break
+					}
+				} else {
+					freeSize = 0
+				}
+			}
+			freeSize = 0
+			size = 0
+			id = -1
+		}
+	}
+
+	return res
+}
+
+func toIntArr(disc []Data) []int {
+	res := []int{}
+	for _, data := range disc {
+		for i := 0; i < data.size; i++ {
+			res = append(res, data.id)
+		}
+	}
+	return res
+}
+
 func main() {
 	file, err := os.Open("input.txt")
 	handleError(err)
@@ -61,6 +118,7 @@ func main() {
 
 	disc := []Data{}
 	sum := 0
+	sum2 := 0
 
 	scanner := bufio.NewScanner(file)
 
@@ -95,5 +153,13 @@ func main() {
 		}
 	}
 
+	for i, data := range compatctIntArr(toIntArr(disc)) {
+		if data == -1 {
+			continue
+		}
+		sum2 += data * i
+	}
+
 	fmt.Println("Sum", sum)
+	fmt.Println("Sum2", sum2)
 }
