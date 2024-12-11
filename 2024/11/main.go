@@ -46,17 +46,15 @@ func blinkCache(key Key) int {
 		return 1
 	}
 
-	inCach, ok := cache[key]
-	if ok {
-		return inCach
+	res, ok := cache[key]
+	if !ok {
+		res = 0
+		for _, stone := range blink(key.key) {
+			res += blinkCache(Key{stone, key.amount - 1})
+		}
+		cache[key] = res
 	}
 
-	res := 0
-	for _, stone := range blink(key.key) {
-		res += blinkCache(Key{stone, key.amount - 1})
-	}
-
-	cache[key] = res
 	return res
 }
 
@@ -72,7 +70,6 @@ func main() {
 
 	for scanner.Scan() {
 		text := scanner.Text()
-
 		arrangement = strings.Split(text, " ")
 	}
 
