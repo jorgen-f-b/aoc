@@ -96,10 +96,10 @@ func main() {
 		p := strings.Split(text, "=")
 		x, err = strconv.Atoi(strings.Split(p[1], ",")[0])
 		handleError(err)
-		cm.x.prize = float64(x)
+		cm.x.prize = float64(x + 10000000000000)
 		y, err = strconv.Atoi(p[2])
 		handleError(err)
-		cm.y.prize = float64(y)
+		cm.y.prize = float64(y + 10000000000000)
 
 		clawMachines = append(clawMachines, cm)
 
