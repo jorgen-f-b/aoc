@@ -15,34 +15,79 @@ func handleError(err error) {
 }
 
 type Room struct {
-	w, h           int
-	lu, ld, ru, rd int
+	w, h int
+	m    [][]int
+}
+
+func createRoom(w, h int) Room {
+	m := make([][]int, h)
+	for i := range m {
+		m[i] = make([]int, w)
+	}
+	return Room{w, h, m}
+}
+
+func (room *Room) noOverlap() bool {
+	for _, arr := range room.m {
+		for _, n := range arr {
+			if n > 1 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (room *Room) print() {
+	for _, arr := range room.m {
+		for _, n := range arr {
+			if n > 0 {
+				fmt.Print("X")
+			} else {
+				fmt.Print(".")
+			}
+		}
+		fmt.Println()
+	}
 }
 
 func (room *Room) saftyFactor() int {
-	return room.ld * room.lu * room.rd * room.ru
+	halfX, halfY := room.w/2, room.h/2
+	ul, ur, dl, dr := 0, 0, 0, 0
+
+	for y, row := range room.m {
+		if y == halfY {
+			continue
+		}
+		for x, n := range row {
+			if n == 0 {
+				continue
+			}
+			if x == halfX {
+				continue
+			}
+
+			if y < halfY {
+				if x < halfX {
+					ul += n
+				} else {
+					ur += n
+				}
+			} else {
+				if x < halfX {
+					dl += n
+				} else {
+					dr += n
+				}
+			}
+
+		}
+	}
+	return ul * ur * dl * dr
 }
 
 func (room *Room) add(robot *Robot) {
-	halfX, halfY := room.w/2, room.h/2
-
-	if robot.pos.x == halfX || robot.pos.y == halfY {
-		return
-	}
-
-	if robot.pos.y < halfY {
-		if robot.pos.x < halfX {
-			room.lu++
-		} else {
-			room.ru++
-		}
-	} else {
-		if robot.pos.x < halfX {
-			room.ld++
-		} else {
-			room.rd++
-		}
-	}
+	room.m[robot.pos.y][robot.pos.x]++
 }
 
 type Vector struct{ x, y int }
@@ -123,13 +168,22 @@ func main() {
 		robots = append(robots, Robot{Vector{px, py}, Vector{vx, vy}})
 	}
 
-	room := Room{w, h, 0, 0, 0, 0}
+	room := createRoom(w, h)
 
-	for _, r := range robots {
-		for i := 0; i < 100; i++ {
+	for i := 0; i < 10403; i++ {
+		tmpRoom := createRoom(w, h)
+		for j, r := range robots {
 			r.walk(w, h)
+			robots[j] = r
+			tmpRoom.add(&r)
+			if i == 99 {
+				room.add(&r)
+			}
 		}
-		room.add(&r)
+		if tmpRoom.noOverlap() {
+			fmt.Println(i + 1)
+			tmpRoom.print()
+		}
 	}
 
 	fmt.Println("Safty Factor", room.saftyFactor())
