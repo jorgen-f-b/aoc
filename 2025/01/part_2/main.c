@@ -16,17 +16,32 @@ char *read_entire_file(const char *filename) {
     return str;
 }
 
-int turn_dial(int from, int direction) {
-  int res = from + direction;
-  while (res < 0) res += 100;
-  return res % 100;
-}
-
 typedef struct {
     char *instructions;
     int index;
     int value;
+    int points;
 } Instruction_Iter;
+#define instruction_iter_lit(S) { S, 0, 50, 0 }
+
+void turn_dial(Instruction_Iter *itr, int direction) {
+    bool was_0 = itr->value == 0;
+    itr->value += direction;
+    while (itr->value < 0) {
+        if (!was_0) {
+            itr->points++;
+        } else was_0 = false;
+        itr->value += 100;
+    }
+    while (itr->value > 100) {
+        itr->value -= 100;
+        itr-> points++;
+    }
+    if (itr->value == 0 || itr->value == 100) {
+        itr->value = 0;
+        itr->points++;
+    }
+}
 
 bool instructions_iter(Instruction_Iter *itr) {
     char *instructions = itr->instructions;
@@ -52,7 +67,7 @@ bool instructions_iter(Instruction_Iter *itr) {
     if (negative_value) value = -value;
 
     itr->index = itr_index;
-    itr->value = turn_dial(itr->value, value);
+    turn_dial(itr, value);
 
     return true;
 }
@@ -60,14 +75,11 @@ bool instructions_iter(Instruction_Iter *itr) {
 int main() {
     //char *text = read_entire_file("../example.txt");
     char *text = read_entire_file("../input.txt");
-    Instruction_Iter itr = { text, 0, 50 };
-    int points = 0;
+    Instruction_Iter itr = instruction_iter_lit(text);
 
-    while (instructions_iter(&itr)) {
-        if (itr.value == 0) points++;
-    }
+    while (instructions_iter(&itr));
 
-    printf("points: %d\n", points);
+    printf("points: %d\n", itr.points);
 
     free(text);
     return 0;
