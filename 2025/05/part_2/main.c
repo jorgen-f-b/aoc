@@ -63,43 +63,72 @@ Node *node_create(u64 from, u64 to) {
     return node;
 }
 
-Node *node_delete_lower(Node *node, u64 to) {
+void node_destroy(Node **nodes) {
+    Node *node = *nodes;
     while (node) {
-        if (to < node->to) return node;
-
-        Node *delete = node;
+        Node *destroy = node;
         node = node->next;
+        free(destroy);
+    }
+    *nodes = NULL;
+}
+
+void node_merge_forwards(Node *node) {
+    while (node->next) {
+        if (node->to < node->next->to) {
+            if (node->to >= node->next->from) node->to = node->next->to;
+            else return;
+        }
+
+        Node *delete = node->next;
+        node->next = node->next->next;
         free(delete);
     }
-    return NULL;
 }
+
+#define in_range(I, R) (((I).from >= (R).from && (I).from <= (R).to) || ((I).to >= (R).from && (I).to <= (R).to))
 
 void unique_ids(Node **ranges, Range range) {
     Node *node = *ranges;
-    if (node && range.from < node->from) {
-        if (range.to <= node->to) {
-            node->from = range.from;
-            return;
-        }
-        node->next = node_delete_lower(node->next, range.to);
+
+    if (!node || range.to < node->from) {
+        Node *new_node = node_create(range.from, range.to);
+        new_node->next = node;
+        *ranges = new_node;
         return;
     }
 
-    Node *prev = NULL;
     while (node) {
-        if (range.from >= node->from && range.from <= node->to) {
-            if (range.to > node->to) {
-                node->to = range.to;
-                node->next = node_delete_lower(node->next, range.to);
-                return;
-            }
-            return;
-        }
-        prev = node;
+        if (!node->next) break;
+        if (in_range(range, *node)) break;
+        if (in_range(*node, range)) break;
+        if (range.to < node->next->from) break;
         node = node->next;
     }
 
-    
+    if (range.from >= node->from && range.to <= node->to) return;
+
+    if (range.from < node->from) node->from = range.from;
+    if (range.from <= node->to) {
+        if (range.to >= node->to) {
+            node->to = range.to;
+            node_merge_forwards(node);
+        }
+        return;
+    }
+
+    Node *new_node = node_create(range.from, range.to);
+    new_node->next = node->next;
+    node->next = new_node;
+}
+
+u64 node_count(Node *node) {
+    u64 count = 0;
+    while (node) {
+        count += node->to - node->from + 1;
+        node = node->next;
+    }
+    return count;
 }
 
 int main() {
@@ -107,30 +136,13 @@ int main() {
     int file_size = read_entire_file("../input.txt", file, FILE_SIZE);
     //int file_size = read_entire_file("../example.txt", file, FILE_SIZE);
 
-    u64 res = 0;
-    u64 range_from[200];
-    u64 range_to[200];
-    int range_size = 0;
+    Node *ranges = NULL;
 
     Iter_Input iter = iter_input_lit(file);
-    while (get_ranges(&iter)) {
-        u64 from = iter.range.from;
-        u64 to = iter.range.to;
+    while (get_ranges(&iter)) unique_ids(&ranges, iter.range);
 
-        for (int i = 0; i < range_size; i++) {
-            if (from >= range_from[i] && from <= range_to[i]) from = range_to[i] + 1;
-            if (to >= range_from[i] && to <= range_to[i]) to = range_from[i] - 1;
-        }
-        if (to < from) continue;
-
-        range_from[range_size] = from;
-        range_to[range_size] = to;
-        range_size++;
-
-        res += to - from + 1;
-    }
-
-    printf("res: %llu\n", res);
+    printf("res: %llu\n", node_count(ranges));
+    node_destroy(&ranges);
 
     return 0;
 }
