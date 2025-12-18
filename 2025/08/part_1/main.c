@@ -3,7 +3,7 @@
 #include "../../parse.c"
 #include "../../d_array.h"
 
-#define FILE_SIZE 512
+#define FILE_SIZE 17646
 
 typedef struct {
     int x, y, z;
@@ -18,7 +18,7 @@ typedef struct {
 } Iter;
 #define iter_lit(F) (Iter){ F }
 
-#define pow2(x) pow(x, 2) 
+#define pow2(x) pow(cast(double, x), 2) 
 
 int distance(Vec3 v1, Vec3 v2) {
     return sqrt(pow2(v1.x - v2.x) + pow2(v1.y - v2.y) + pow2(v1.z - v2.z));
@@ -28,7 +28,7 @@ bool iterate_file(Iter *iter) {
     if (!*iter->file) return false;
 
     int i = 0;
-    char num[12] = {0};
+    char num[22] = {0};
 
     while (*iter->file != ',') {
         num[i++] = *iter->file;
@@ -65,74 +65,67 @@ typedef struct {
     int dist;
 } Jb_Dist;
 #define jb_dist_lit(j1, j2, d) (Jb_Dist){ j1, j2, d }
+#define jb_dist_dist(A, I) A->items[I].dist
 
-Dyn_Array_Make(Da_Jb_Dist, Jb_Dist);
+Dyn_Array_Make(Jb_Dists, Jb_Dist);
+QuickSort_Make(jb_dists, Jb_Dists, Jb_Dist, jb_dist_dist)
 
-void swap(Da_Jb_Dist *arr, int i, int j) {
-    Jb_Dist tmp = arr->items[i];
-    arr->items[i] = arr->items[j];
-    arr->items[j] = tmp;
-}
+Dyn_Array_Make(Circuit, int);
 
-int partition(Da_Jb_Dist *arr, int low, int high) {
-    int pivot = arr->items[high].dist;
-    int i = low - 1;
-
-    for (int j = low; j <= high - 1; j++) {
-        if (arr->items[j].dist < pivot) {
-            i++;
-            swap(arr, i, j);
-        }
-    }
-
-    swap(arr, i + 1, high);
-    return i + 1;
-}
-
-void quick_sort(Da_Jb_Dist *arr, int low, int high) {
-    if (low >= high) return;
-
-    int pi = partition(arr, low, high);
-
-    quick_sort(arr, low, pi - 1);
-    quick_sort(arr, pi + 1, high);
-}
-
-Dyn_Array_Make(Da_Id, int);
-
-bool da_id_contains(Da_Id *arr, int id) {
-    for (int i = 0; i < arr->size; i++) {
-        if (arr->items[i] == id) return true;
+bool circuit_contains(Circuit *circuit, int id) {
+    for (int i = 0; i < circuit->size; i++) {
+        if (circuit->items[i] == id) return true;
     }
     return false;
 }
 
-bool da_id_cmp_merge(Da_Id *arr1, Da_Id *arr2) {
-    bool merge = false;
-    for (int i = 0; i < arr2->size; i++) {
-        if (da_id_contains(arr1, arr2->items[i])) {
-            merge = true;
-            break;
-        }
+void circuit_print(Circuit *c) {
+    printf("[%d", c->items[0]);
+    for (int i = 1; i < c->size; i++) {
+        printf(", %d", c->items[i]);
     }
-    if (!merge) return false;
-
-    for (int i = 0; i < arr2->size; i++) {
-        if (!da_id_contains(arr1, arr2->items[i])) da_append(arr1, arr2->items[i]);
-    }
-    return true;
+    printf("]\n");
 }
 
-Dyn_Array_Make(Da_Da_Id, Da_Id);
+Dyn_Array_Make(Circuits, Circuit);
+#define circuits_size(A, I) A->items[I].size
+QuickSort_Make(circuits, Circuits, Circuit, circuits_size)
 
-void Da_Da_Id_Destroy(Da_Da_Id *arr) {
+void circuits_print(Circuits *c) {
+    for (int i = 0; i < c->size; i++) circuit_print(&c->items[i]);
+}
+
+void Circuits_Connect(Circuits *circuits, int id1, int id2) {
+    size_t c1 = circuits->size;
+    size_t c2 = circuits->size;
+
+    for (size_t i = 0; i < circuits->size; i++) {
+        Circuit *circuit = &circuits->items[i];
+        if (c1 == circuits->size && circuit_contains(circuit, id1)) c1 = i;
+        if (c2 == circuits->size && circuit_contains(circuit, id2)) c2 = i;
+        if (c1 != circuits->size && c2 != circuits->size) break;
+    }
+
+    if (c1 == c2) return;
+
+    Circuit *circuit1 = &circuits->items[c1];
+    Circuit *circuit2 = &circuits->items[c2];
+    for (int i = 0; i < circuit2->size; i++) {
+        if (!circuit_contains(circuit1, circuit2->items[i])) da_append(circuit1, circuit2->items[i]);
+    }
+    da_destroy(circuit2);
+    circuits->items[c2] = da_pop(circuits);
+}
+
+void Circuits_Destroy(Circuits *arr) {
     for (int i = 0; i < arr->size; i++) da_destroy(&arr->items[i]);
     da_destroy(arr);
 }
 
 int main() {
     char file[FILE_SIZE];
-    int file_size = read_entire_file("../example.txt", file, FILE_SIZE);
+    int file_size = read_entire_file("../input.txt", file, FILE_SIZE);
+    //int file_size = read_entire_file("../example.txt", file, FILE_SIZE);
 
     Iter iter = iter_lit(file);
     Da_Vec3 vectors = {0};
@@ -140,69 +133,34 @@ int main() {
         da_append(&vectors, iter.vec3);
     }
 
-    for (int i = 0; i < vectors.size; i++) {
-        printf("%d: Vec3{ %d, %d, %d }\n", i, vectors.items[i].x, vectors.items[i].y, vectors.items[i].z);
-    }
-
-    Da_Jb_Dist jb_dists = {0};
+    Jb_Dists jb_dists = {0};
     for (int i = 0; i < vectors.size; i++) {
         for (int j = i + 1; j < vectors.size; j++) {
             da_append(&jb_dists, jb_dist_lit(i, j, distance(vectors.items[i], vectors.items[j])));
         }
     }
-    quick_sort(&jb_dists, 0, jb_dists.size-1);
+    jb_dists_quick_sort(&jb_dists, 0, jb_dists.size-1);
 
-    Da_Da_Id da_da_id = {0};
-    for (int i = 0; i < jb_dists.size; i++) {
-        int id1 = jb_dists.items[i].jb1;
-        int id2 = jb_dists.items[i].jb2;
-        bool found = false;
-
-        for (int j = 0; j < da_da_id.size; j++) {
-            Da_Id *da_id = &da_da_id.items[j];
-            if (da_id_contains(da_id, id1)) {
-                if (!da_id_contains(da_id, id2)) {
-                    da_append(da_id, id2);
-                }
-                found = true;
-                break;
-            }
-            if (da_id_contains(da_id, id2)) {
-                da_append(da_id, id1);
-                found = true;
-                break;
-            }
-        }
-        if (found) continue;
-
-        Da_Id da_id = {0};
-        da_append(&da_id, id1);
-        da_append(&da_id, id2);
-
-        da_append(&da_da_id, da_id);
+    Circuits circuits = {0};
+    for (int i = 0; i < vectors.size; i++) {
+        Circuit c = {0};
+        da_append(&c, i);
+        da_append(&circuits, c);
     }
 
-    for (int i = 0; i < da_da_id.size; i++) {
-        Da_Id *da_id1 = &da_da_id.items[i];
-        for (int j = i + 1; j < da_da_id.size; j++) {
-            Da_Id *da_id2 = &da_da_id.items[j];
-            if (da_id_cmp_merge(da_id1, da_id2)) {
-                da_destroy(da_id2);
-                da_da_id.items[j] = da_pop(&da_da_id);
-            }
-        }
+    for (int i = 0; i < 1000; i++) {
+        Circuits_Connect(&circuits, jb_dists.items[i].jb1, jb_dists.items[i].jb2);
     }
+    circuits_quick_sort(&circuits, 0, circuits.size-1);
 
-    for (int i = 0; i < da_da_id.size; i++) {
-        printf("[%d", da_da_id.items[i].items[0]);
-        for (int j = 1; j < da_da_id.items[i].size; j++) {
-            printf(", %d", da_da_id.items[i].items[j]);
-        }
-        printf("]\n");
+    u64 res = 1;
+    for (int i = 0; i < 3; i++) {
+        res *= circuits.items[circuits.size-1-i].size;
     }
+    printf("res: %llu\n", res);
 
     da_destroy(&vectors);
     da_destroy(&jb_dists);
-    Da_Da_Id_Destroy(&da_da_id);
+    Circuits_Destroy(&circuits);
     return 0;
 }
