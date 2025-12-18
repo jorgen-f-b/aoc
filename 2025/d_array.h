@@ -5,7 +5,7 @@ typedef struct { \
     T *items; \
     size_t size; \
     size_t capacity; \
-} N
+} N;
 
 #define da_append(A, I) \
 do { \
