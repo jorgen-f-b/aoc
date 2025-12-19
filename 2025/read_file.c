@@ -19,3 +19,20 @@ int read_entire_file(const char *filename, char *buffer, int buffer_size) {
 
     return file_size;
 }
+
+typedef struct {
+    char *file;
+    char *line;
+} File_Line_Iter;
+#define file_line_iter_lit(F) (File_Line_Iter){ F }
+
+bool iter_line(File_Line_Iter *iter) {
+    if (!*iter->file) return false;
+
+    iter->line = iter->file;
+    while (*iter->file != '\n') iter->file++;
+    *iter->file = 0;
+    iter->file++;
+
+    return true;
+}
